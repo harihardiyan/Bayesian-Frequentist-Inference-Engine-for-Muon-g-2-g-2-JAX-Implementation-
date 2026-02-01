@@ -1,6 +1,7 @@
-
-# Toy g-2 style engine with two observables, grid-based inference,
+# g2_engine.py
+# Muon g-2 engine with two observables, grid-based inference,
 # Wilks toys, Brazilian band, MCMC validation, and Bayes factor NP vs SM.
+# Updated to use 2025–2026 real-world delta a_mu inputs.
 
 from dataclasses import dataclass, field
 
@@ -134,7 +135,6 @@ def log_prior_kappa_mixture_bounded(kappa, prior_cfg: KappaPriorModel):
     b = jnp.log(1.0 - prior_cfg.w) + logp2
     log_mix = jsp.special.logsumexp(jnp.stack([a, b]), axis=0)
 
-    # Truncated normalization on the same support
     k_grid = jnp.linspace(prior_cfg.kappa_min, prior_cfg.kappa_max, 4001)
     logp1_g = _log_gauss(k_grid, prior_cfg.mu1, prior_cfg.sigma1)
     logp2_g = _log_gauss(k_grid, prior_cfg.mu2, prior_cfg.sigma2)
@@ -224,7 +224,6 @@ def profile_and_bayes_two_obs(
         sigma_hvp,
     )
 
-    # Profile likelihood in mu
     logL_prof_mu = jnp.max(logL_2d, axis=1)
     logL_max = jnp.max(logL_prof_mu)
     q_prof_mu = -2.0 * (logL_prof_mu - logL_max)
@@ -232,7 +231,6 @@ def profile_and_bayes_two_obs(
     idx_prof = jnp.argmin(q_prof_mu)
     mu_hat_prof = float(mu_grid[idx_prof])
 
-    # Bayesian marginal posterior in mu
     logPrior_kappa_2d = log_prior_kappa_fn(kappa_mesh, kappa_prior_cfg)
     logPrior_mu_2d = log_prior_mu_wide(mu_mesh)
 
@@ -469,6 +467,8 @@ def wilks_empirical_ci(q_toys, alpha=0.95):
     Empirical quantile of q from toys.
     """
     return jnp.quantile(q_toys, alpha)
+
+
 # ============================================================
 # 7. Prior sweep
 # ============================================================
@@ -625,24 +625,26 @@ def test_posterior_normalization(res):
 
 
 # ============================================================
-# 10. Main: g-2-like toy + Bayes factor + Brazilian band
+# 10. Main: real-world 2025–2026 delta a_mu + Bayes factor + Brazilian band
 # ============================================================
 
 def main():
-    # g-2-like central values and uncertainties (in 1e-11 units)
-    delta_mu_exp = 251.0
-    sigma_mu = 59.0
+    # Real-world 2025–2026 delta a_mu (in 1e-11 units)
+    # delta_mu_exp = a_mu_exp - a_mu_SM
+    # combined sigma from experimental and theory uncertainties
+    delta_mu_exp = 38.0
+    sigma_mu = 15.8
 
-    # Pseudo-HVP constraint (second observable)
-    delta_hvp_exp = 70.0
-    sigma_hvp = 40.0
+    # Second observable: HVP constraint (lattice already included in SM)
+    delta_hvp_exp = 0.0
+    sigma_hvp = 30.0
 
     print("delta_mu_exp  (1e-11) =", float(delta_mu_exp))
     print("sigma_mu      (1e-11) =", float(sigma_mu))
     print("delta_hvp_exp (1e-11) =", float(delta_hvp_exp))
     print("sigma_hvp     (1e-11) =", float(sigma_hvp))
 
-    mu_cfg = MuGridConfig(mu_min=-400.0, mu_max=400.0, n_mu=401)
+    mu_cfg = MuGridConfig(mu_min=-200.0, mu_max=200.0, n_mu=401)
 
     kappa_prior_cfg = KappaPriorModel(
         w=0.5,
@@ -671,7 +673,7 @@ def main():
         log_prior_kappa_fn=log_prior_kappa_mixture_bounded,
     )
 
-    print("\n[Mixture prior, 2 obs]")
+    print("\n[Mixture prior, 2 obs, real-world delta a_mu]")
     print("  mu_hat_profile (1e-11) =", res_mix["mu_hat_prof"])
     print("  mu_hat_bayes   (1e-11) =", res_mix["mu_hat_bayes"])
     print("  logZ_NP (mu free)       =", res_mix["logZ"])
@@ -754,7 +756,7 @@ def main():
     )
     ax[0].set_xlabel("mu (1e-11)")
     ax[0].set_ylabel("kappa (1e-11)")
-    ax[0].set_title("2D posterior (mixture prior, 2 obs)")
+    ax[0].set_title("2D posterior (mixture prior, real delta a_mu)")
     ax[0].legend()
 
     logPost_2d_unif = (
@@ -782,7 +784,7 @@ def main():
     )
     ax[1].set_xlabel("mu (1e-11)")
     ax[1].set_ylabel("kappa (1e-11)")
-    ax[1].set_title("2D posterior (uniform prior, 2 obs)")
+    ax[1].set_title("2D posterior (uniform prior, real delta a_mu)")
     ax[1].legend()
 
     plt.tight_layout()
@@ -806,7 +808,7 @@ def main():
     )
     ax[0].set_xlabel("mu (1e-11)")
     ax[0].set_ylabel("q(mu)")
-    ax[0].set_title("Profile likelihood (2 obs)")
+    ax[0].set_title("Profile likelihood (real delta a_mu)")
     ax[0].legend()
 
     logPost_max = jnp.max(logPost_marg_mu)
@@ -828,7 +830,7 @@ def main():
     )
     ax[1].set_xlabel("mu (1e-11)")
     ax[1].set_ylabel("-2 Δ log (arb.)")
-    ax[1].set_title("Profile vs Bayesian posterior (2 obs)")
+    ax[1].set_title("Profile vs Bayesian posterior (real delta a_mu)")
     ax[1].legend()
 
     plt.tight_layout()
@@ -838,9 +840,9 @@ def main():
     key = jax.random.PRNGKey(0)
     wilks_cfg = WilksConfig(
         mu_true=0.0,
-        kappa_true=80.0,
+        kappa_true=0.0,
         n_toys=2000,
-        mu_grid=MuGridConfig(mu_min=-400.0, mu_max=400.0, n_mu=401),
+        mu_grid=MuGridConfig(mu_min=-200.0, mu_max=200.0, n_mu=401),
         kappa_grid=KappaGridConfig(
             kappa_min=-100.0,
             kappa_max=300.0,
@@ -859,7 +861,7 @@ def main():
 
     mean_q = float(jnp.mean(q_toys))
     std_q = float(jnp.std(q_toys))
-    print("\n[Wilks, 2 obs]")
+    print("\n[Wilks, 2 obs, real delta a_mu]")
     print("  q_toys mean/std:", mean_q, std_q)
 
     q_vals = jnp.linspace(0.0, 20.0, 200)
@@ -882,7 +884,7 @@ def main():
     ax.axvline(q95_chi2, color="k", ls="-.", lw=1, label="95% chi2(df=1)")
     ax.set_xlabel("q")
     ax.set_ylabel("CDF")
-    ax.set_title("Wilks test: two observables")
+    ax.set_title("Wilks test: real delta a_mu")
     ax.legend()
     plt.tight_layout()
     plt.show()
@@ -928,14 +930,14 @@ def main():
 
     ax.set_xlabel("mu (1e-11)")
     ax.set_ylabel("q(mu)")
-    ax.set_title("Brazilian band for q(mu) (2 obs)")
+    ax.set_title("Brazilian band for q(mu) (real delta a_mu)")
     ax.legend()
     plt.tight_layout()
     plt.show()
 
     # MCMC validation
     if HAS_BLACKJAX:
-        print("\n[MCMC validation, 2 obs]")
+        print("\n[MCMC validation, 2 obs, real delta a_mu]")
         samples = run_mcmc_blackjax_two_obs(
             delta_mu_exp,
             sigma_mu,
@@ -965,13 +967,13 @@ def main():
         )
         ax[0].set_xlabel("mu (1e-11)")
         ax[0].set_ylabel("density")
-        ax[0].set_title("mu posterior: MCMC vs grid (2 obs)")
+        ax[0].set_title("mu posterior: MCMC vs grid (real delta a_mu)")
         ax[0].legend()
 
         ax[1].scatter(mu_samps, kappa_samps, s=2, alpha=0.3)
         ax[1].set_xlabel("mu (1e-11)")
         ax[1].set_ylabel("kappa (1e-11)")
-        ax[1].set_title("MCMC samples in (mu, kappa) (2 obs)")
+        ax[1].set_title("MCMC samples in (mu, kappa) (real delta a_mu)")
         plt.tight_layout()
         plt.show()
 
