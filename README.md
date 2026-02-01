@@ -8,7 +8,7 @@
 ![Field: High-Energy Physics](https://img.shields.io/badge/Field-High--Energy%20Physics-red.svg)
 ![Status: Research Grade](https://img.shields.io/badge/Status-Research--Grade-blueviolet.svg)
 ![MCMC: BlackJAX](https://img.shields.io/badge/MCMC-BlackJAX-purple.svg)
-
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18451962.svg)](https://doi.org/10.5281/zenodo.18451962)
 </div>
 
 **Author:** Hari Hardiyan (with Microsoft Copilot)  
@@ -108,6 +108,25 @@ This engine emphasizes explicit grid integration over black-box approximations. 
 **License:** MIT License  
 If you use this engine in academic work, please cite this repository and acknowledge the use of JAX and BlackJAX.
 
-**Contact:** [lorozloraz@gmail.com](mailto:lorozloraz@gmail.com)
+---
+
+## 📜 Citation
+
+If you utilize this engine in academic research, please cite the permanent archive:
+
+**Hardiyan, H. (2026). Muon g-2 Inference Engine: A JAX-accelerated framework for Bayesian & Frequentist model selection (v1.0.0). Zenodo. https://doi.org/10.5281/zenodo.18451962**
+
+```bibtex
+@software{hari_hardiyan_2026_18451962,
+  author       = {Hari Hardiyan},
+  title        = {Muon g-2 Inference Engine: JAX Implementation},
+  month        = feb,
+  year         = 2026,
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.18451962},
+  url          = {https://doi.org/10.5281/zenodo.18451962}
+}
 ```
+**Contact:** [lorozloraz@gmail.com](mailto:lorozloraz@gmail.com)
 
